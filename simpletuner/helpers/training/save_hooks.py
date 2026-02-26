@@ -453,10 +453,7 @@ class SaveHookManager:
             self.ema_model.copy_to(trainable_parameters)
             ema_trained_component = _deep_unwrap(self.model.get_trained_component())
             lora_save_parameters = {
-                f"{self.model.MODEL_SUBFOLDER}_lora_layers": convert_state_dict_to_diffusers(
-                    _clean_peft_sd(ema_trained_component),
-                    original_type=StateDictType.PEFT,
-                ),
+                f"{self.model.MODEL_SUBFOLDER}_lora_layers": _clean_peft_sd(ema_trained_component),
             }
             ema_modules_to_save = {self.model.MODEL_SUBFOLDER: ema_trained_component}
             ema_metadata = _collate_lora_metadata(ema_modules_to_save)
@@ -490,22 +487,13 @@ class SaveHookManager:
                 modules_to_save["controlnet"] = unwrapped_model
             elif isinstance(unwrapped_model, trained_component_cls):
                 # unet_lora_layers or transformer_lora_layers
-                lora_save_parameters[f"{self.model.MODEL_SUBFOLDER}_lora_layers"] = convert_state_dict_to_diffusers(
-                    _clean_peft_sd(unwrapped_model),
-                    original_type=StateDictType.PEFT,
-                )
+                lora_save_parameters[f"{self.model.MODEL_SUBFOLDER}_lora_layers"] = _clean_peft_sd(unwrapped_model)
                 modules_to_save[self.model.MODEL_SUBFOLDER] = unwrapped_model
             elif text_encoder_0_cls is not None and isinstance(unwrapped_model, text_encoder_0_cls):
-                lora_save_parameters["text_encoder_lora_layers"] = convert_state_dict_to_diffusers(
-                    _clean_peft_sd(unwrapped_model),
-                    original_type=StateDictType.PEFT,
-                )
+                lora_save_parameters["text_encoder_lora_layers"] = _clean_peft_sd(unwrapped_model)
                 modules_to_save["text_encoder"] = unwrapped_model
             elif text_encoder_1_cls is not None and isinstance(unwrapped_model, text_encoder_1_cls):
-                lora_save_parameters["text_encoder_2_lora_layers"] = convert_state_dict_to_diffusers(
-                    _clean_peft_sd(unwrapped_model),
-                    original_type=StateDictType.PEFT,
-                )
+                lora_save_parameters["text_encoder_2_lora_layers"] = _clean_peft_sd(unwrapped_model)
                 modules_to_save["text_encoder_2"] = unwrapped_model
             elif not self.use_deepspeed_optimizer:
                 # Fallback: treat unrecognised model as the trained component
@@ -517,10 +505,7 @@ class SaveHookManager:
                     f"Attempting to save as {self.model.MODEL_SUBFOLDER} LoRA."
                 )
                 try:
-                    lora_save_parameters[f"{self.model.MODEL_SUBFOLDER}_lora_layers"] = convert_state_dict_to_diffusers(
-                        _clean_peft_sd(unwrapped_model),
-                        original_type=StateDictType.PEFT,
-                    )
+                    lora_save_parameters[f"{self.model.MODEL_SUBFOLDER}_lora_layers"] = _clean_peft_sd(unwrapped_model)
                     modules_to_save[self.model.MODEL_SUBFOLDER] = unwrapped_model
                 except Exception as e:
                     raise ValueError(

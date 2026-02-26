@@ -6084,16 +6084,12 @@ class Trainer:
             if "lora" in self.config.model_type and "standard" == self.config.lora_type.lower():
                 # Use unwrap_model=False since model is already unwrapped above
                 trained_component = self.model.get_trained_component(unwrap_model=False)
-                from diffusers.utils.state_dict_utils import StateDictType as _SDType
                 raw_sd = get_peft_model_state_dict(trained_component)
                 # Strip _orig_mod prefix leaked by torch.compile wrapping
                 raw_sd = {k.replace("_orig_mod.", ""): v for k, v in raw_sd.items()}
                 lora_save_kwargs = {
                     "save_directory": self.config.output_dir,
-                    f"{self.model.MODEL_TYPE.value}_lora_layers": convert_state_dict_to_diffusers(
-                        raw_sd,
-                        original_type=_SDType.PEFT,
-                    ),
+                    f"{self.model.MODEL_TYPE.value}_lora_layers": raw_sd,
                 }
 
                 if self.config.train_text_encoder:
