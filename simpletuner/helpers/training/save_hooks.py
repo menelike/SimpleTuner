@@ -494,7 +494,25 @@ class SaveHookManager:
                 )
                 modules_to_save["text_encoder_2"] = unwrapped_model
             elif not self.use_deepspeed_optimizer:
-                raise ValueError(f"unexpected save model: {model.__class__}")
+                # Fallback: treat unrecognised model as the trained component
+                # (e.g. DDP-wrapped FluxTransformer2DModel whose class identity
+                # doesn't match trained_component_cls after unwrapping).
+                logger.warning(
+                    f"Unrecognised model class {unwrapped_model.__class__}, "
+                    f"expected {trained_component_cls}. "
+                    f"Attempting to save as {self.model.MODEL_SUBFOLDER} LoRA."
+                )
+                try:
+                    lora_save_parameters[f"{self.model.MODEL_SUBFOLDER}_lora_layers"] = convert_state_dict_to_diffusers(
+                        get_peft_model_state_dict(unwrapped_model),
+                        original_type=StateDictType.PEFT,
+                    )
+                    modules_to_save[self.model.MODEL_SUBFOLDER] = unwrapped_model
+                except Exception as e:
+                    raise ValueError(
+                        f"unexpected save model: {model.__class__} "
+                        f"(fallback extraction also failed: {e})"
+                    )
 
             # make sure to pop weight so that corresponding model is not saved again
             if weights:
