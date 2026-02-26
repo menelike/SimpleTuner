@@ -6085,10 +6085,13 @@ class Trainer:
                 # Use unwrap_model=False since model is already unwrapped above
                 trained_component = self.model.get_trained_component(unwrap_model=False)
                 from diffusers.utils.state_dict_utils import StateDictType as _SDType
+                raw_sd = get_peft_model_state_dict(trained_component)
+                # Strip _orig_mod prefix leaked by torch.compile wrapping
+                raw_sd = {k.replace("_orig_mod.", ""): v for k, v in raw_sd.items()}
                 lora_save_kwargs = {
                     "save_directory": self.config.output_dir,
                     f"{self.model.MODEL_TYPE.value}_lora_layers": convert_state_dict_to_diffusers(
-                        get_peft_model_state_dict(trained_component),
+                        raw_sd,
                         original_type=_SDType.PEFT,
                     ),
                 }
