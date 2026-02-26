@@ -449,23 +449,30 @@ class SaveHookManager:
             self.model.save_lora_weights(os.path.join(output_dir, "ema"), **lora_save_parameters, **ema_metadata)
             self.ema_model.restore(trainable_parameters)
 
-        trained_component_cls = type(unwrap_model(self.accelerator, self.model.get_trained_component()))
+        def _deep_unwrap(m):
+            """Unwrap accelerate, torch.compile, and DDP wrappers."""
+            m = unwrap_model(self.accelerator, m)
+            if hasattr(m, "module"):  # DDP wrapper
+                m = m.module
+            return m
+
+        trained_component_cls = type(_deep_unwrap(self.model.get_trained_component()))
         text_encoder_0_cls = None
         text_encoder_1_cls = None
 
         text_encoder_0 = self.model.get_text_encoder(0)
         if text_encoder_0 is not None:
-            text_encoder_0_cls = type(unwrap_model(self.accelerator, text_encoder_0))
+            text_encoder_0_cls = type(_deep_unwrap(text_encoder_0))
 
         text_encoder_1 = self.model.get_text_encoder(1)
         if text_encoder_1 is not None:
-            text_encoder_1_cls = type(unwrap_model(self.accelerator, text_encoder_1))
+            text_encoder_1_cls = type(_deep_unwrap(text_encoder_1))
 
         lora_save_parameters = {}
         modules_to_save = {}
         # TODO: Refactor this implementation for better structure.
         for model in models:
-            unwrapped_model = unwrap_model(self.accelerator, model)
+            unwrapped_model = _deep_unwrap(model)
             if self.args.controlnet and isinstance(
                 unwrapped_model,
                 trained_component_cls,
