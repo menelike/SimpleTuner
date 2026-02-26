@@ -6081,10 +6081,12 @@ class Trainer:
             if "lora" in self.config.model_type and "standard" == self.config.lora_type.lower():
                 # Use unwrap_model=False since model is already unwrapped above
                 trained_component = self.model.get_trained_component(unwrap_model=False)
+                from diffusers.utils.state_dict_utils import StateDictType as _SDType
                 lora_save_kwargs = {
                     "save_directory": self.config.output_dir,
-                    f"{self.model.MODEL_TYPE.value}_lora_layers": get_peft_model_state_dict(
-                        trained_component
+                    f"{self.model.MODEL_TYPE.value}_lora_layers": convert_state_dict_to_diffusers(
+                        get_peft_model_state_dict(trained_component),
+                        original_type=_SDType.PEFT,
                     ),
                 }
 
