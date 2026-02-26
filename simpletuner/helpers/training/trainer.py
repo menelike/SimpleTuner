@@ -6078,6 +6078,9 @@ class Trainer:
                 # Also unwrap DDP wrapper if present (multi-GPU training)
                 if hasattr(self.model.model, "module"):
                     self.model.model = self.model.model.module
+                # Strip torch.compile wrapper if present
+                if hasattr(self.model.model, "_orig_mod"):
+                    self.model.model = self.model.model._orig_mod
             if "lora" in self.config.model_type and "standard" == self.config.lora_type.lower():
                 # Use unwrap_model=False since model is already unwrapped above
                 trained_component = self.model.get_trained_component(unwrap_model=False)

@@ -434,6 +434,8 @@ class SaveHookManager:
             m = unwrap_model(self.accelerator, m)
             if hasattr(m, "module"):  # DDP wrapper
                 m = m.module
+            if hasattr(m, "_orig_mod"):  # torch.compile wrapper
+                m = m._orig_mod
             return m
 
         if self.args.use_ema:
