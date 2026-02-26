@@ -6079,10 +6079,12 @@ class Trainer:
                 if hasattr(self.model.model, "module"):
                     self.model.model = self.model.model.module
             if "lora" in self.config.model_type and "standard" == self.config.lora_type.lower():
+                # Use unwrap_model=False since model is already unwrapped above
+                trained_component = self.model.get_trained_component(unwrap_model=False)
                 lora_save_kwargs = {
                     "save_directory": self.config.output_dir,
                     f"{self.model.MODEL_TYPE.value}_lora_layers": get_peft_model_state_dict(
-                        self.model.get_trained_component()
+                        trained_component
                     ),
                 }
 
