@@ -6075,6 +6075,9 @@ class Trainer:
                 AttentionBackendController.apply(self.config, AttentionPhase.TRAIN)
             if self.model.get_trained_component() is not None:
                 self.model.model = unwrap_model(self.accelerator, self.model.model)
+                # Also unwrap DDP wrapper if present (multi-GPU training)
+                if hasattr(self.model.model, "module"):
+                    self.model.model = self.model.model.module
             if "lora" in self.config.model_type and "standard" == self.config.lora_type.lower():
                 lora_save_kwargs = {
                     "save_directory": self.config.output_dir,
