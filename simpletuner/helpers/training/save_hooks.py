@@ -429,6 +429,13 @@ class SaveHookManager:
         # Diffusers does not train the third text encoder.
         # text_encoder_3_lora_layers_to_save = None
 
+        def _deep_unwrap(m):
+            """Unwrap accelerate, torch.compile, and DDP wrappers."""
+            m = unwrap_model(self.accelerator, m)
+            if hasattr(m, "module"):  # DDP wrapper
+                m = m.module
+            return m
+
         if self.args.use_ema:
             # we'll temporarily overwrite teh LoRA parameters with the EMA parameters to save it.
             logger.info("Saving EMA model to disk.")
@@ -437,7 +444,7 @@ class SaveHookManager:
             ]
             self.ema_model.store(trainable_parameters)
             self.ema_model.copy_to(trainable_parameters)
-            ema_trained_component = unwrap_model(self.accelerator, self.model.get_trained_component())
+            ema_trained_component = _deep_unwrap(self.model.get_trained_component())
             lora_save_parameters = {
                 f"{self.model.MODEL_SUBFOLDER}_lora_layers": convert_state_dict_to_diffusers(
                     get_peft_model_state_dict(ema_trained_component),
@@ -448,13 +455,6 @@ class SaveHookManager:
             ema_metadata = _collate_lora_metadata(ema_modules_to_save)
             self.model.save_lora_weights(os.path.join(output_dir, "ema"), **lora_save_parameters, **ema_metadata)
             self.ema_model.restore(trainable_parameters)
-
-        def _deep_unwrap(m):
-            """Unwrap accelerate, torch.compile, and DDP wrappers."""
-            m = unwrap_model(self.accelerator, m)
-            if hasattr(m, "module"):  # DDP wrapper
-                m = m.module
-            return m
 
         trained_component_cls = type(_deep_unwrap(self.model.get_trained_component()))
         text_encoder_0_cls = None
